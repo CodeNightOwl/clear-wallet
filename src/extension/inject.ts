@@ -11,18 +11,6 @@ interface EIP6963ProviderInfo {
     rdns: string;
   }
 
-let PQueuePromise: Promise<unknown> = new Promise(() => {})
-let queueDefault : null | any = null
-let queueChainId : null |any = null
-const MAX_PROMISES = 20
-
-const impLib = import('p-queue')
-PQueuePromise = impLib
-impLib.then((lib) => {
-    queueDefault = new lib.default({concurrency: MAX_PROMISES});
-    queueChainId = new lib.default({concurrency: MAX_PROMISES});
-});
- 
 const listeners = {
     accountsChanged: new Set<(p?: any) => void>(),
     connect: new Set<(p?: any) => void>(),
@@ -33,7 +21,7 @@ const listeners = {
         connect: new Set<(p?: any) => void>(),
         disconnect: new Set<(p?: any) => void>(),
         chainChanged: new Set<(p?: any) => void>(),
-    }
+    },
 }
 
 const promResolvers = new Map()
@@ -56,9 +44,6 @@ function loadEIP1193Provider(provider: any) {
 
     function announceProvider() {
       const info: EIP6963ProviderInfo = ProviderInfo
-      if(!provider.accounts?.length) {
-        return
-      }
       window.dispatchEvent(
         new CustomEvent("eip6963:announceProvider", {
           detail: Object.freeze({ info, provider }),
@@ -116,8 +101,7 @@ const sendMessage = (args: RequestArguments, ping = false, from = 'request'): Pr
     const resId = [...`${Math.random().toString(16) + Date.now().toString(16)}`].slice(2).join('')
     const method = args.method
 
-    const newMessage =  async () => {
-        return await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         if (method === 'wallet_getPermissions') {
             args.params = [{ isConnected: eth.isConnected() }]
         }
@@ -136,23 +120,9 @@ const sendMessage = (args: RequestArguments, ping = false, from = 'request'): Pr
             data.type = 'CLWALLET_PING'
         }
 
-        // if(method !== 'eth_chainId') {
-        //     console.info('data in', data)          
-        // }
-
         window.postMessage(data, "*");
         promResolvers.set(resId, { resolve, reject })
     })
-   }
-
-   let retPromise: Promise<unknown>
-
-   if(method !== 'eth_chainId') {
-    retPromise = queueDefault!.add(newMessage)
-   } else {
-    retPromise = queueChainId!.add(newMessage)
-   }
-   return retPromise
 }
 
 (function() {
@@ -506,12 +476,11 @@ Object.defineProperty((window as any), 'web3', {
   eth.initialConnect() 
 }
 
-(PQueuePromise).then(() => {
+// 直接初始化，不需要等待PQueuePromise
 injectWallet();
 loadEIP1193Provider(eth);
 document.addEventListener('DOMContentLoaded', () => {
 loadEIP1193Provider(eth);
-})
 })
 
 

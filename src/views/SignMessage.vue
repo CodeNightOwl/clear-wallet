@@ -132,9 +132,21 @@ const onCancel = () => {
 };
 
 onIonViewWillEnter(async () => {
+  console.log('📱 [SignMessage] 签名弹窗已打开');
+  console.log('📝 [SignMessage] 签名消息:', signMsg.value.substring(0, 100));
+  console.log('🌐 [SignMessage] 请求来源:', website);
+  console.log('🆔 [SignMessage] 请求ID:', rid);
+
   blockLockout();
   getSelectedAccount().then((account) => {
     intialSelectedAccount.value = account;
+    console.log('👤 [SignMessage] 初始账户信息:', {
+      name: account?.name,
+      address: account?.address,
+      auth_sign: account?.auth_sign ? '✅ 已配置' : '❌ 未配置',
+      groupIndex: account?.groupIndex || '❌ 未配置',
+      pkLength: account?.pk?.length || 0
+    });
   });
   interval = setInterval(async () => {
     if (timerReject.value <= 0) {
@@ -165,23 +177,38 @@ const openModal = async () => {
 };
 
 const onSign = async () => {
+  console.log('🔍 [SignMessage] 用户点击 Sign 按钮');
   loading.value = true;
   if (interval) {
     clearInterval(interval);
   }
   const selectedAccount = await getSelectedAccount();
   loading.value = false;
+
+  console.log('👤 [SignMessage] 账户信息:', selectedAccount);
+  console.log('📋 [SignMessage] 账户详情:', {
+    name: selectedAccount?.name,
+    address: selectedAccount?.address,
+    auth_sign: selectedAccount?.auth_sign ? '✅ 已配置 (' + selectedAccount.auth_sign.substring(0, 20) + '...)' : '❌ 未配置',
+    groupIndex: selectedAccount?.groupIndex || '❌ 未配置',
+    pkLength: selectedAccount?.pk?.length || 0
+  });
+
   if ((selectedAccount.pk ?? "").length !== 66) {
+    console.log('🔐 [SignMessage] 需要解锁钱包');
     const modalResult = await openModal();
     if (modalResult) {
       unBlockLockout();
       loading.value = true;
+      console.log('✅ [SignMessage] 用户批准签名，发送 approve 消息');
       approve(rid);
     } else {
       onCancel();
     }
   } else {
+    console.log('🔓 [SignMessage] 钱包已解锁，直接发送 approve 消息');
     unBlockLockout();
+    console.log('✅ [SignMessage] 用户批准签名，发送 approve 消息');
     approve(rid);
   }
   loading.value = false;

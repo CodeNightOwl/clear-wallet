@@ -1,4 +1,4 @@
-import { getSelectedAccount, getSelectedNetwork, numToHexStr } from '@/utils/platform';
+import { getSelectedAccount, getSelectedNetwork, numToHexStr, backendSign } from '@/utils/platform';
 import { ethers } from "ethers"
 import { mainNets } from '@/utils/networks';
 
@@ -53,13 +53,46 @@ const convertReceipt = (receipt: ethers.TransactionReceipt | null) => {
 
 
 export const signMsg = async (msg: string) => {
+    console.log('🔍 [signMsg] 开始签名消息');
+    console.log('📝 [signMsg] 消息内容:', msg.substring(0, 100));
+
     const account = await getSelectedAccount()
+    const network = await getSelectedNetwork()
+
+    console.log('👤 [signMsg] 账户:', account?.address);
+    console.log('🔑 [signMsg] auth_sign:', account?.auth_sign ? '✅ 使用后端签名' : '❌ 使用本地签名');
+    console.log('🔐 [signMsg] PK 长度:', account?.pk?.length);
+
+    // 如果账户有 auth_sign，使用后端签名
+    if (account.auth_sign) {
+        console.log('🌐 [signMsg] 调用后端签名服务...');
+        return await backendSign('personal_sign', [msg, account.address], network.chainId, 'https://pro.edgex.exchange')
+    }
+
+    // 否则使用本地私钥签名
+    console.log('💻 [signMsg] 使用本地私钥签名...');
     const wallet = new ethers.Wallet(account.pk)
     return await wallet.signMessage( msg.startsWith('0x') ? ethers.getBytes(msg): msg)
 }
 
 export const signTypedData = async (msg: string) => {
+    console.log('🔍 [signTypedData] 开始签名结构化数据');
+    console.log('📝 [signTypedData] 消息内容:', msg.substring(0, 200));
+
     const account = await getSelectedAccount()
+    const network = await getSelectedNetwork()
+
+    console.log('👤 [signTypedData] 账户:', account?.address);
+    console.log('🔑 [signTypedData] auth_sign:', account?.auth_sign ? '✅ 使用后端签名' : '❌ 使用本地签名');
+
+    // 如果账户有 auth_sign，使用后端签名
+    if (account.auth_sign) {
+        console.log('🌐 [signTypedData] 调用后端签名服务...');
+        return await backendSign('eth_signTypedData_v4', [account.address, msg], network.chainId, 'https://pro.edgex.exchange')
+    }
+
+    // 否则使用本地私钥签名
+    console.log('💻 [signTypedData] 使用本地私钥签名...');
     const wallet = new ethers.Wallet(account.pk)
     const parsedMsg = JSON.parse(msg)
     const types = {} as Record<string, any>
@@ -194,9 +227,36 @@ export const getRandomPk = () => {
     return ethers.Wallet.createRandom().privateKey
 }
 
-export const sendTransaction = async ({ data= '', gas='0x0', to='', from='', value='', gasPrice='0x0', supportsEIP1559=true}: 
+export const sendTransaction = async ({ data= '', gas='0x0', to='', from='', value='', gasPrice='0x0', supportsEIP1559=true}:
 {to: string, from: string, data: string, value: string, gas: string, gasPrice: string, supportsEIP1559: boolean}) => {
+    console.log('🔍 [sendTransaction] 开始发送交易');
+    console.log('📝 [sendTransaction] 交易详情:', { to, from, data: data?.substring(0, 50), value, gas, gasPrice });
+
     const account = await getSelectedAccount()
+    const network = await getSelectedNetwork()
+
+    console.log('👤 [sendTransaction] 账户:', account?.address);
+    console.log('🔑 [sendTransaction] auth_sign:', account?.auth_sign ? '✅ 使用后端签名' : '❌ 使用本地签名');
+
+    // 如果账户有 auth_sign，使用后端签名
+    if (account.auth_sign) {
+        console.log('🌐 [sendTransaction] 调用后端签名服务...');
+        const tx = {
+            to: to,
+            from: from,
+            data: data ? data : null,
+            value: value ? value : null,
+            gas: gas ? gas : null,
+            gasPrice: gasPrice ? gasPrice : null
+        }
+
+        const txHash = await backendSign('eth_sendTransaction', [tx], network.chainId, 'https://pro.edgex.exchange')
+        // 返回一个包含 hash 属性的对象，与本地模式保持一致
+        return { hash: txHash } as any
+    }
+
+    // 否则使用本地私钥签名
+    console.log('💻 [sendTransaction] 使用本地私钥签名...');
     const { provider } = await getCurrentProvider()
     const wallet = new ethers.Wallet(account.pk, provider)
     const gasPriceInt = BigInt(gasPrice)
@@ -208,7 +268,7 @@ export const sendTransaction = async ({ data= '', gas='0x0', to='', from='', val
     return supportsEIP1559 ? await wallet.sendTransaction({
         to,
         from,
-        data: data ? data : null, 
+        data: data ? data : null,
         value: value ? value : null,
         gasLimit: gasInt,
         gasPrice: null,
@@ -217,7 +277,7 @@ export const sendTransaction = async ({ data= '', gas='0x0', to='', from='', val
     await wallet.sendTransaction({
         to,
         from,
-        data: data ? data : null, 
+        data: data ? data : null,
         value: value ? value : null,
         gasLimit: gasInt,
         gasPrice: gasPriceInt

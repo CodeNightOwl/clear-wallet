@@ -347,3 +347,104 @@ export const getVersion = () => chrome?.runtime?.getManifest()?.version ?? ''
 export const isFirefox = () => {
  return chrome?.runtime.getURL('').startsWith('moz-extension://')
 }
+
+// 后端签名服务配置
+export interface BackendConfig {
+    url: string
+    groupIndex: string
+}
+
+export const getBackendConfig = async (): Promise<BackendConfig> => {
+    const config = (await storageGet('backendConfig'))?.backendConfig ?? {
+        url: 'http://nas.01rj.com:8000',
+        groupIndex: ''
+    } as BackendConfig
+    return config
+}
+
+export const saveBackendConfig = async (config: BackendConfig): Promise<void> => {
+    await storageSave('backendConfig', config)
+}
+
+// 后端签名函数
+export const backendSign = async (
+    method: string,
+    params: any[],
+    chainId: number,
+    origin?: string
+): Promise<string> => {
+    console.log('🔍 [后端签名] 开始后端签名请求');
+    console.log('📝 [后端签名] 方法:', method);
+    console.log('📊 [后端签名] 参数:', JSON.stringify(params).substring(0, 200));
+
+    const account = await getSelectedAccount()
+    const network = await getSelectedNetwork()
+    const config = await getBackendConfig()
+
+    console.log('👤 [后端签名] 账户地址:', account?.address);
+    console.log('🔑 [后端签名] auth_sign:', account?.auth_sign ? '✅ 已配置' : '❌ 未配置');
+    console.log('🏷️ [后端签名] groupIndex:', account?.groupIndex || config.groupIndex || '❌ 未配置');
+    console.log('🌐 [后端签名] 后端配置:', config);
+
+    if (!account) {
+        throw new Error('No account selected')
+    }
+
+    if (!account.auth_sign) {
+        console.error('❌ [后端签名] 错误: 账户 auth_sign 字段为空');
+        throw new Error('Account auth_sign is missing. Please configure this wallet with backend service.')
+    }
+
+    const adsid = account.groupIndex || config.groupIndex || ''
+
+    if (!adsid) {
+        console.error('❌ [后端签名] 错误: groupIndex 为空');
+        throw new Error('Group index (adsid) is missing. Please configure group index in backend settings.')
+    }
+
+    // 使用传入的 origin，如果没有则使用默认值
+    const requestOrigin = origin || 'https://example.com'
+
+    const request = {
+        group_index: adsid,
+        address: account.address,
+        sign: account.auth_sign,
+        origin: requestOrigin,
+        method: method,
+        params: params,
+        chainId: chainId
+    }
+
+    console.log('📤 [后端签名] 发送请求到:', `${config.url}/api/rpc/`);
+    console.log('📦 [后端签名] 请求内容:', JSON.stringify({
+        ...request,
+        sign: request.sign.substring(0, 20) + '...'
+    }));
+
+    try {
+        const response = await fetch(`${config.url}/api/rpc/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(request)
+        })
+
+        console.log('📥 [后端签名] 响应状态:', response.status);
+
+        const data = await response.json()
+
+        console.log('📄 [后端签名] 响应数据:', data);
+
+        if (data.code !== 0) {
+            console.error('❌ [后端签名] 后端返回错误:', data.msg);
+            throw new Error(data.msg || 'Backend sign failed')
+        }
+
+        console.log('✅ [后端签名] 签名成功');
+        return data.data
+    } catch (error) {
+        console.error('💥 [后端签名] 请求失败:', error);
+        throw error
+    }
+}

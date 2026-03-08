@@ -795,9 +795,20 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                 case 'personal_sign':
                 case 'eth_sign': {
                     try {
+                        console.log('🔍 [ServiceWorker] 收到签名请求');
+                        console.log('📝 [ServiceWorker] 方法:', message.method);
+                        console.log('🆔 [ServiceWorker] 请求ID:', message.resId);
+                        console.log('🌐 [ServiceWorker] 来源:', message.website);
+
                         const account = await getSelectedAccount()
 
+                        console.log('👤 [ServiceWorker] 当前账户:', account?.address);
+                        console.log('🔑 [ServiceWorker] auth_sign:', account?.auth_sign ? '✅ 已配置' : '❌ 未配置');
+                        console.log('🏷️ [ServiceWorker] groupIndex:', account?.groupIndex || '❌ 未配置');
+                        console.log('🔐 [ServiceWorker] PK 长度:', account?.pk?.length);
+
                         if (!account || !('address' in account)) {
+                            console.error('❌ [ServiceWorker] 没有选中账户');
                             await chrome.windows.create({
                                 height: 470,
                                 width: 400,
@@ -818,6 +829,8 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                             'eth_signTypedData_v4'].includes(message?.method);
                         const signMsgData = isTypedSigned ? String(message?.params?.[1] ?? '') : String(message?.params?.[0] ?? '');
 
+                        console.log('📄 [ServiceWorker] 签名数据:', signMsgData.substring(0, 100));
+
                         let webDomain = ''
                         try {
                             const url = new URL(message?.website ?? '')
@@ -825,6 +838,8 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                         } catch {
                             webDomain = ''
                         }
+
+                        console.log('📱 [ServiceWorker] 创建签名弹窗...');
 
                         await new Promise((resolve, reject) => {
                             chrome.windows.create({
@@ -836,15 +851,22 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                                 userReject[String(win?.id)] = reject
                                 userApprove[String(win?.id)] = resolve
                                 rIdWin[String(win?.id)] = String(message.resId)
+                                console.log('✅ [ServiceWorker] 弹窗已创建, 窗口ID:', win?.id);
                             })
 
                         })
-                        sendResponse(
-                            isTypedSigned ?
-                                await signTypedData(signMsgData) :
-                                await signMsg(signMsgData)
-                        )
+
+                        console.log('✅ [ServiceWorker] 用户已批准，开始签名...');
+                        console.log('🔍 [ServiceWorker] 调用签名函数:', isTypedSigned ? 'signTypedData' : 'signMsg');
+
+                        const result = isTypedSigned ?
+                            await signTypedData(signMsgData) :
+                            await signMsg(signMsgData)
+
+                        console.log('✅ [ServiceWorker] 签名完成, 结果长度:', result?.length);
+                        sendResponse(result)
                     } catch (e) {
+                        console.error('💥 [ServiceWorker] 签名错误:', e);
                         console.warn('Error: signTypedData', e)
                         sendResponse({
                             error: true,
@@ -855,7 +877,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                     try {
                         const settings = await getSettings()
                         if (settings.encryptAfterEveryTx) {
-                            await clearPk()
+                            clearPk()
                         }
                     } catch {
                         // ignore
@@ -1009,8 +1031,17 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                     break
                 }
                 case 'wallet_approve': {
+                    console.log('🔔 [ServiceWorker] 收到 wallet_approve 消息');
+                    console.log('🆔 [ServiceWorker] 请求ID:', message.resId);
+                    console.log('🪟 [ServiceWorker] 窗口ID:', sender.tab?.windowId);
+                    console.log('📋 [ServiceWorker] rIdWin:', Object.keys(rIdWin));
+                    
                     if (String(sender.tab?.windowId) in rIdWin) {
+                        console.log('✅ [ServiceWorker] 找到对应的 Promise，正在 resolve...');
                         userApprove[String(sender.tab?.windowId)]?.(true)
+                        console.log('✅ [ServiceWorker] Promise 已 resolve');
+                    } else {
+                        console.warn('⚠️ [ServiceWorker] 未找到对应的 Promise');
                     }
                     try {
                         chrome.windows.remove(sender.tab?.windowId ?? 0)

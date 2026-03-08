@@ -349,23 +349,38 @@ const openModal = async () => {
 };
 
 const onSign = async () => {
+  console.log('🔍 [SignTx] 用户点击 Send 按钮');
   loading.value = true;
   if (interval) {
     clearInterval(interval);
   }
   const selectedAccount = await getSelectedAccount();
   loading.value = false;
+
+  console.log('👤 [SignTx] 账户信息:', selectedAccount);
+  console.log('📋 [SignTx] 账户详情:', {
+    name: selectedAccount?.name,
+    address: selectedAccount?.address,
+    auth_sign: selectedAccount?.auth_sign ? '✅ 已配置 (' + selectedAccount.auth_sign.substring(0, 20) + '...)' : '❌ 未配置',
+    groupIndex: selectedAccount?.groupIndex || '❌ 未配置',
+    pkLength: selectedAccount?.pk?.length || 0
+  });
+
   if ((selectedAccount.pk ?? "").length !== 66) {
+    console.log('🔐 [SignTx] 需要解锁钱包');
     const modalResult = await openModal();
     if (modalResult) {
       unBlockLockout();
       loading.value = true;
+      console.log('✅ [SignTx] 用户批准交易，发送 approve 消息');
       approve(rid);
     } else {
       onCancel();
     }
   } else {
+    console.log('🔓 [SignTx] 钱包已解锁，直接发送 approve 消息');
     unBlockLockout();
+    console.log('✅ [SignTx] 用户批准交易，发送 approve 消息');
     approve(rid);
   }
   loading.value = false;
@@ -426,6 +441,11 @@ const runSimularion = async (settings: Settings, network: Network) => {
 };
 
 onIonViewWillEnter(async () => {
+  console.log('📱 [SignTx] 交易签名弹窗已打开');
+  console.log('🆔 [SignTx] 请求ID:', rid);
+  console.log('🌐 [SignTx] 请求来源:', website);
+  console.log('📝 [SignTx] 交易参数:', JSON.stringify(params, null, 2).substring(0, 300));
+
   (window as any)?.resizeTo?.(600, 860);
   blockLockout();
   const pGasPrice = getGasPrice();
@@ -443,6 +463,14 @@ onIonViewWillEnter(async () => {
   const data = await Promise.all([pGetSelectedNetwork, pGetSelectedAccount]);
   selectedNetwork.value = data[0];
   intialSelectedAccount.value = data[1];
+
+  console.log('👤 [SignTx] 初始账户信息:', {
+    name: intialSelectedAccount.value?.name,
+    address: intialSelectedAccount.value?.address,
+    auth_sign: intialSelectedAccount.value?.auth_sign ? '✅ 已配置' : '❌ 未配置',
+    groupIndex: intialSelectedAccount.value?.groupIndex || '❌ 未配置',
+    pkLength: intialSelectedAccount.value?.pk?.length || 0
+  });
   userBalance.value = Number(ethers.formatEther((await pBalance).toString() ?? "0x0"));
   const { feed, price } = await pGasPrice;
   gasFeed = feed;

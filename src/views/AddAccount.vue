@@ -19,22 +19,50 @@
       <ion-item>
         <ion-button @click="getRandomName">Generate Random Name</ion-button>
       </ion-item>
-      <ion-item v-if="!isEdit">
+      <ion-item v-if="!authSign">
         <ion-icon
           style="margin-right: 0.5rem; cursor: pointer"
           @click="paste('pastePk')"
           :icon="clipboardOutline"
           button
         />
-        <ion-input
+        <!-- <ion-input
           label="PK"
           labelPlacement="stacked"
           id="pastePk"
           v-model="pk"
           fill="outline"
+          placeholder="后端签名模式可留空"
+        ></ion-input> -->
+      </ion-item>
+      <ion-item>
+        <ion-input
+          label="Address (地址)"
+          labelPlacement="stacked"
+          v-model="address"
+          fill="outline"
+          placeholder="钱包地址（后端签名模式必填）"
         ></ion-input>
       </ion-item>
-      <template v-if="!isEdit">
+      <ion-item>
+        <ion-input
+          label="Auth Sign (后端签名)"
+          labelPlacement="stacked"
+          v-model="authSign"
+          fill="outline"
+          placeholder="从后端获取的鉴权签名"
+        ></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-input
+          label="Group Index (AdsPower序号)"
+          labelPlacement="stacked"
+          v-model="groupIndex"
+          fill="outline"
+          placeholder="AdsPower环境序号"
+        ></ion-input>
+      </ion-item>
+      <template v-if="!isEdit && !authSign">
         <ion-item>
           <ion-button @click="generateRandomPk">Generate Random Private Key</ion-button>
         </ion-item>
@@ -147,6 +175,9 @@ import { setUnlockModalState } from "@/utils/unlockStore";
 
 const name = ref("");
 const pk = ref("");
+const address = ref("");
+const authSign = ref("");
+const groupIndex = ref("");
 const alertOpen = ref(false);
 const alertMsg = ref("");
 const route = useRoute();
@@ -162,6 +193,9 @@ let settingsProm: Promise<Settings | undefined>;
 const resetFields = () => {
   name.value = "";
   pk.value = "";
+  address.value = "";
+  authSign.value = "";
+  groupIndex.value = "";
 };
 
 const openModal = async () => {
@@ -190,6 +224,8 @@ onIonViewWillEnter(async () => {
     const acc = accounts.find((account) => account.address === paramAddress);
     if (acc) {
       name.value = acc.name;
+      authSign.value = acc.auth_sign || "";
+      groupIndex.value = acc.groupIndex || "";
     }
   }
 });
@@ -222,6 +258,8 @@ const onEditAccount = async () => {
     name: name.value,
     pk: account.pk,
     encPk: account.encPk,
+    auth_sign: authSign.value,
+    groupIndex: groupIndex.value,
   };
   await deleteAccount(account.address, accounts);
 
@@ -236,75 +274,190 @@ const onAddAccount = async () => {
     alertOpen.value = true;
     return;
   }
-  if (pk.value.length === 64) {
-    pk.value = `0x${pk.value.trim()}`;
-  }
-  if (pk.value.length !== 66) {
-    alertMsg.value = "Provided private key is invalid.";
-    alertOpen.value = true;
-    return;
-  }
-
-  const wallet = new ethers.Wallet(pk.value);
-  if (!accountsProm) {
-    accountsProm = getAccounts();
-  }
-  if (!settingsProm) {
-    settingsProm = getSettings();
-  }
-  const accounts = (await accountsProm) as Account[];
-  const settings = (await settingsProm) as Settings;
-  if (settings.enableStorageEnctyption) {
-    const pass = await openModal();
-    if (!pass) {
-      alertMsg.value = "Cannot add account without encryption password.";
+  
+  // 如果有 auth_sign，使用后端签名模式
+  if (authSign.value.length > 0) {
+    // 后端签名模式：只需要地址和 auth_sign
+    let accountAddress = "";
+    
+    // 如果用户填写了地址，使用用户填写的地址
+    if (address.value.length > 0) {
+      // 验证地址格式
+      try {
+        ethers.getAddress(address.value);
+        accountAddress = ethers.getAddress(address.value);
+      } catch (e) {
+        alertMsg.value = "Invalid address format.";
+        alertOpen.value = true;
+        return;
+      }
+    } 
+    // 如果用户没有填写地址，从私钥生成
+    else if (pk.value.length > 0) {
+      if (pk.value.length === 64) {
+        pk.value = `0x${pk.value.trim()}`;
+      }
+      if (pk.value.length !== 66) {
+        alertMsg.value = "Please provide a valid private key or address.";
+        alertOpen.value = true;
+        return;
+      }
+      const wallet = new ethers.Wallet(pk.value);
+      accountAddress = wallet.address;
+    } else {
+      alertMsg.value = "Please provide either address or private key.";
       alertOpen.value = true;
       return;
     }
-    const cryptoParams = await getCryptoParams(pass);
-    if ((accounts.length ?? 0) < 1) {
-      p1 = saveSelectedAccount({
+    
+    // 私钥可以是任意值（用于满足数据结构）
+    if (pk.value.length === 0) {
+      pk.value = "0x" + "0".repeat(64);
+    } else if (pk.value.length === 64) {
+      pk.value = `0x${pk.value.trim()}`;
+    }
+    
+    if (!accountsProm) {
+      accountsProm = getAccounts();
+    }
+    if (!settingsProm) {
+      settingsProm = getSettings();
+    }
+    const accounts = (await accountsProm) as Account[];
+    const settings = (await settingsProm) as Settings;
+    
+    if (settings.enableStorageEnctyption) {
+      const pass = await openModal();
+      if (!pass) {
+        alertMsg.value = "Cannot add account without encryption password.";
+        alertOpen.value = true;
+        return;
+      }
+      const cryptoParams = await getCryptoParams(pass);
+      if ((accounts.length ?? 0) < 1) {
+        p1 = saveSelectedAccount({
+          address: accountAddress,
+          name: name.value,
+          pk: pk.value,
+          encPk: await encrypt(pk.value, cryptoParams),
+          auth_sign: authSign.value,
+          groupIndex: groupIndex.value,
+        });
+      } else {
+        if (accounts.find((account) => account.address === accountAddress)) {
+          alertMsg.value = "Account already exists.";
+          alertOpen.value = true;
+          return;
+        }
+      }
+      const p2 = saveAccount({
+        address: accountAddress,
+        name: name.value,
+        pk: pk.value,
+        encPk: await encrypt(pk.value, cryptoParams),
+        auth_sign: authSign.value,
+        groupIndex: groupIndex.value,
+      });
+      await Promise.all([p1, p2]);
+    } else {
+      if ((accounts.length ?? 0) < 1) {
+        p1 = saveSelectedAccount({
+          address: accountAddress,
+          name: name.value,
+          pk: pk.value,
+          encPk: "",
+          auth_sign: authSign.value,
+          groupIndex: groupIndex.value,
+        });
+      } else {
+        if (accounts.find((account) => account.address === accountAddress)) {
+          alertMsg.value = "Account already exists.";
+          alertOpen.value = true;
+          return;
+        }
+      }
+      const p2 = saveAccount({
+        address: accountAddress,
+        name: name.value,
+        pk: pk.value,
+        encPk: "",
+        auth_sign: authSign.value,
+        groupIndex: groupIndex.value,
+      });
+      await Promise.all([p1, p2]);
+    }
+  } else {
+    // 本地签名模式：必须有真实的私钥
+    if (pk.value.length === 64) {
+      pk.value = `0x${pk.value.trim()}`;
+    }
+    if (pk.value.length !== 66) {
+      alertMsg.value = "Please provide a valid private key for local signing, or add auth_sign for backend signing.";
+      alertOpen.value = true;
+      return;
+    }
+
+    const wallet = new ethers.Wallet(pk.value);
+    if (!accountsProm) {
+      accountsProm = getAccounts();
+    }
+    if (!settingsProm) {
+      settingsProm = getSettings();
+    }
+    const accounts = (await accountsProm) as Account[];
+    const settings = (await settingsProm) as Settings;
+    if (settings.enableStorageEnctyption) {
+      const pass = await openModal();
+      if (!pass) {
+        alertMsg.value = "Cannot add account without encryption password.";
+        alertOpen.value = true;
+        return;
+      }
+      const cryptoParams = await getCryptoParams(pass);
+      if ((accounts.length ?? 0) < 1) {
+        p1 = saveSelectedAccount({
+          address: wallet.address,
+          name: name.value,
+          pk: pk.value,
+          encPk: await encrypt(pk.value, cryptoParams),
+        });
+      } else {
+        if (accounts.find((account) => account.address === wallet.address)) {
+          alertMsg.value = "Account already exists.";
+          alertOpen.value = true;
+          return;
+        }
+      }
+      const p2 = saveAccount({
         address: wallet.address,
         name: name.value,
         pk: pk.value,
         encPk: await encrypt(pk.value, cryptoParams),
       });
+      await Promise.all([p1, p2]);
     } else {
-      if (accounts.find((account) => account.address === wallet.address)) {
-        alertMsg.value = "Account already exists.";
-        alertOpen.value = true;
-        return;
+      if ((accounts.length ?? 0) < 1) {
+        p1 = saveSelectedAccount({
+          address: wallet.address,
+          name: name.value,
+          pk: pk.value,
+          encPk: "",
+        });
+      } else {
+        if (accounts.find((account) => account.address === wallet.address)) {
+          alertMsg.value = "Account already exists.";
+          alertOpen.value = true;
+          return;
+        }
       }
-    }
-    const p2 = saveAccount({
-      address: wallet.address,
-      name: name.value,
-      pk: pk.value,
-      encPk: await encrypt(pk.value, cryptoParams),
-    });
-    await Promise.all([p1, p2]);
-  } else {
-    if ((accounts.length ?? 0) < 1) {
-      p1 = saveSelectedAccount({
+      const p2 = saveAccount({
         address: wallet.address,
         name: name.value,
         pk: pk.value,
         encPk: "",
       });
-    } else {
-      if (accounts.find((account) => account.address === wallet.address)) {
-        alertMsg.value = "Account already exists.";
-        alertOpen.value = true;
-        return;
-      }
+      await Promise.all([p1, p2]);
     }
-    const p2 = saveAccount({
-      address: wallet.address,
-      name: name.value,
-      pk: pk.value,
-      encPk: "",
-    });
-    await Promise.all([p1, p2]);
   }
   if (isEdit) {
     router.push("/tabs/accounts");
