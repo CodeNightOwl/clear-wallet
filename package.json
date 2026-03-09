@@ -2,7 +2,7 @@
   "name": "远程签名钱包-by-owl",
   "version": "1.5.5",
   "private": true,
-  "description": "远程签名钱包 by-owl - 后端签名的 EVM 钱包",
+  "description": "远程签名钱包 by-owl 2026年3月 - 后端签名的 EVM 钱包，实现 MetaMask API ",
   "type": "module",
   "scripts": {
     "dev": "vite",
