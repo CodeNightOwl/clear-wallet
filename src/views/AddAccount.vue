@@ -42,6 +42,7 @@
           v-model="address"
           fill="outline"
           placeholder="钱包地址（后端签名模式必填）"
+          autocomplete="on"
         ></ion-input>
       </ion-item>
       <ion-item>
@@ -156,6 +157,7 @@ import {
 import { ethers } from "ethers";
 import {
   saveSelectedAccount,
+  getSelectedAccount,
   getAccounts,
   saveAccount,
   smallRandomString,
@@ -267,8 +269,15 @@ const onEditAccount = async () => {
   if (findIndex !== -1) {
     accounts[findIndex] = savedAcc;
   }
-  
+
   await replaceAccounts([...accounts]);
+
+  // 检查是否更新了当前选中的账户，如果是，也需要更新 selectedAccount
+  const selectedAccount = await getSelectedAccount();
+  if (selectedAccount && selectedAccount.address === paramAddress) {
+    await saveSelectedAccount(savedAcc);
+  }
+
   router.push("/tabs/accounts");
 };
 
