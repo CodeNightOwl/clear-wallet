@@ -41,21 +41,21 @@
               <ion-list>
                 <ion-item
                   >Network Name:
-                  {{ (existingNetworks as any)[networkId]?.name }}</ion-item
+                  {{ (existingNetworks as any)[Number(networkId)]?.name }}</ion-item
                 >
                 <ion-item>
                   <ion-avatar
-                    v-if="(allTemplateNets as any)[(existingNetworks as any)[networkId]?.chainId]?.icon"
+                    v-if="(allTemplateNets as any)[(existingNetworks as any)[Number(networkId)]?.chainId]?.icon"
                     style="margin-right: 1rem; width: 1.6rem; height: 1.6rem"
                   >
                     <img
-                      :alt="(existingNetworks as any)[networkId]?.name"
-                      :src="getUrl('assets/chain-icons/' + (allTemplateNets as any)[(existingNetworks as any)[networkId]?.chainId].icon)"
+                      :alt="(existingNetworks as any)[Number(networkId)]?.name"
+                      :src="getUrl('assets/chain-icons/' + (allTemplateNets as any)[(existingNetworks as any)[Number(networkId)]?.chainId].icon)"
                     />
                   </ion-avatar>
                   <ion-label
                     >Network ID:
-                    {{ (existingNetworks as any)[networkId]?.chainId }}</ion-label
+                    {{ (existingNetworks as any)[Number(networkId)]?.chainId }}</ion-label
                   >
                 </ion-item>
               </ion-list>

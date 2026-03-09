@@ -39,7 +39,7 @@ import {
     getSelectedAddress,
     getRpcPerformance
 } from '@/utils/wallet'
-import type { RequestArguments } from '@/extension/types'
+import type { RequestArguments, Network } from '@/extension/types'
 import { rpcError } from '@/extension/rpcConstants'
 import { updatePrices } from '@/utils/gecko'
 import { allTemplateNets, noFoundNetworks } from '@/utils/networks'
@@ -133,17 +133,17 @@ const reInjectContentScripts = async () => {
 const addDefaultNetworksOnInstall = async () => {
     const userNetworks = await getNetworks()
     if (Object.keys(userNetworks).length === 0) {
-        const networks = []
+        const networks: {[key: number]: Network} = {}
         const selectedNetwork = allTemplateNets[noFoundNetworks.defaultNetworks[0]]
         for (const network of noFoundNetworks.defaultNetworks) {
             if (allTemplateNets[network]) {
-                networks.push(allTemplateNets[network])
+                networks[network] = allTemplateNets[network]
             }
         }
         replaceNetworks(networks)
         saveSelectedNetwork(selectedNetwork)
     }
-     
+
 }
 
 chrome.runtime.onInstalled.addListener(() => {
