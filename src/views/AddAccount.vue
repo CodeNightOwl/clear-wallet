@@ -219,68 +219,166 @@ const openModal = async () => {
 };
 
 onIonViewWillEnter(async () => {
+
   if (isEdit && paramAddress) {
+
     accountsProm = getAccounts();
+
     settingsProm = getSettings();
+
     const accounts = (await accountsProm) as Account[];
-    const acc = accounts.find((account) => account.address === paramAddress);
+
+    const oldAddress = Array.isArray(paramAddress) ? paramAddress[0] : paramAddress;
+
+    const acc = accounts.find((account) => account.address === oldAddress);
+
     if (acc) {
+
       name.value = acc.name;
+
+      address.value = acc.address;
+
       authSign.value = acc.auth_sign || "";
+
       groupId.value = acc.groupId || "";
+
     }
+
   }
+
 });
 
+
+
 const deleteAccount = async (address: string, accounts: Account[]) => {
+
   const findIndex = accounts.findIndex((a) => a.address === address);
+
   const pArr: Array<Promise<void>> = [];
+
   if (findIndex !== -1) {
+
     accounts.splice(findIndex, 1);
+
     pArr.push(replaceAccounts([...accounts]));
+
   }
+
   await Promise.all(pArr);
+
 };
 
+
+
 const onEditAccount = async () => {
+
   if (name.value.length < 1) {
+
     alertMsg.value = "Name cannot be empty.";
+
     alertOpen.value = true;
+
     return;
+
   }
+
   const accounts = (await accountsProm) as Account[];
-  const account = accounts.find((acc) => acc.address === paramAddress);
+
+  const oldAddress = Array.isArray(paramAddress) ? paramAddress[0] : paramAddress;
+
+  const account = accounts.find((acc) => acc.address === oldAddress);
+
   if (!account) {
+
     alertMsg.value = "Account not found.";
+
     alertOpen.value = true;
+
     return;
+
   }
-  
+
+
+
   // 保留原始账户的所有字段，只更新需要修改的字段
+
   const savedAcc: Account = {
-    ...account,  // 保留所有原始字段
+
+    ...account,  // 保留所有原始字段（包括 pk、encPk）
+
+    address: address.value,  // ✅ 使用新的地址
+
     name: name.value,
+
     auth_sign: authSign.value,
+
     groupId: groupId.value,
+
   };
-  
-  // 直接替换账户列表中的该账户，而不是删除再添加
-  const findIndex = accounts.findIndex((a) => a.address === paramAddress);
-  if (findIndex !== -1) {
-    accounts[findIndex] = savedAcc;
+
+
+
+  // 检查地址是否改变
+
+  const addressChanged = address.value.toLowerCase() !== oldAddress.toLowerCase();
+
+
+
+  if (addressChanged) {
+
+    // 地址改变了，删除旧账号，添加新账号
+
+    const findIndex = accounts.findIndex((a) => a.address === oldAddress);
+
+    if (findIndex !== -1) {
+
+      accounts.splice(findIndex, 1);
+
+    }
+
+    accounts.push(savedAcc);
+
+  } else {
+
+    // 地址没有改变，直接替换
+
+    const findIndex = accounts.findIndex((a) => a.address === oldAddress);
+
+    if (findIndex !== -1) {
+
+      accounts[findIndex] = savedAcc;
+
+    }
+
   }
+
+
 
   await replaceAccounts([...accounts]);
 
-  // 检查是否更新了当前选中的账户，如果是，也需要更新 selectedAccount
+
+
+  // 检查是否需要更新 selectedAccount
+
   const selectedAccount = await getSelectedAccount();
-  if (selectedAccount && selectedAccount.address === paramAddress) {
-    await saveSelectedAccount(savedAcc);
+
+  if (selectedAccount) {
+
+    // 如果旧地址是选中的，或者新地址是选中的，都更新
+
+    if (selectedAccount.address === oldAddress || selectedAccount.address === address.value) {
+
+      await saveSelectedAccount(savedAcc);
+
+    }
+
   }
 
-  router.push("/tabs/accounts");
-};
 
+
+  router.push("/tabs/accounts");
+
+};
 const onAddAccount = async () => {
   let p1 = Promise.resolve();
   if (name.value.length < 1) {
