@@ -1,1 +1,10 @@
-{"appName": {"message": "远程签名钱包", "description": "远程签名钱包"}, "appDesc": {"message": "An open-source EVM wallet based on ethers, ionic, vue, that implements the metamask API, that works as drop in replacement.", "description": "An open-source EVM wallet based on ethers, ionic, vue, that implements the metamask API, that works as drop in replacement."}}
+{
+    "appName": {
+        "message": "远程签名钱包",
+        "description": "远程签名钱包"
+    },
+    "appDesc": {
+        "message": "远程签名钱包 - 后端签名的 EVM 钱包，实现 MetaMask API",
+        "description": "远程签名钱包 - 后端签名的 EVM 钱包，实现 MetaMask API"
+    }
+}
