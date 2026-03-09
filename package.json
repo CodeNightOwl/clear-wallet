@@ -1,8 +1,8 @@
 {
-  "name": "clear-wallet",
+  "name": "远程签名钱包",
   "version": "1.5.5",
   "private": true,
-  "description": "基于开源修改的远程签名钱包方案，.",
+  "description": "远程签名钱包 - 后端签名的 EVM 钱包",
   "type": "module",
   "scripts": {
     "dev": "vite",
