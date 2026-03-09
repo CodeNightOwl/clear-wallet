@@ -26,6 +26,12 @@ import { foxyfyManifest } from './utils/firefoxify'
 
     await foxyfyManifest(isFirefox);
 
+    // Fix base href for chrome-extension:// protocol
+    const indexPath = 'dist/index.html';
+    let indexContent = fs.readFileSync(indexPath).toString();
+    indexContent = indexContent.replace('<base href="/" />', '<base href="./" />');
+    fs.writeFileSync(indexPath, indexContent);
+
     console.log('Post build executed');
 
   })();

@@ -6,6 +6,7 @@ import manifest from './src/extension/manifest.json'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: './',
   publicDir: './public',
   define: {
     'process.env': {}
