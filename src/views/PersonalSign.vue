@@ -234,7 +234,12 @@ const getSignature = async () => {
     return;
   }
 
-  if ((selectedAccount.value.pk ?? "").length !== 66) {
+  // 后端签名模式：检查是否有 auth_sign
+  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+    console.log('🔓 [PersonalSign] 后端签名模式，无需解锁钱包');
+    unBlockLockout();
+  } else if ((selectedAccount.value.pk ?? "").length !== 66) {
+    console.log('🔐 [PersonalSign] 本地签名模式，需要解锁钱包');
     const modalResult = await openModal();
     if (modalResult) {
       unBlockLockout();
@@ -243,6 +248,7 @@ const getSignature = async () => {
       onCancel();
     }
   } else {
+    console.log('🔓 [PersonalSign] 本地签名模式，钱包已解锁');
     unBlockLockout();
   }
 

@@ -55,11 +55,11 @@
       </ion-item>
       <ion-item>
         <ion-input
-          label="Group Index (AdsPower序号)"
+          label="Group ID (指纹浏览器序号)"
           labelPlacement="stacked"
-          v-model="groupIndex"
+          v-model="groupId"
           fill="outline"
-          placeholder="AdsPower环境序号"
+          placeholder="指纹浏览器环境序号"
         ></ion-input>
       </ion-item>
       <template v-if="!isEdit && !authSign">
@@ -177,7 +177,7 @@ const name = ref("");
 const pk = ref("");
 const address = ref("");
 const authSign = ref("");
-const groupIndex = ref("");
+const groupId = ref("");
 const alertOpen = ref(false);
 const alertMsg = ref("");
 const route = useRoute();
@@ -195,7 +195,7 @@ const resetFields = () => {
   pk.value = "";
   address.value = "";
   authSign.value = "";
-  groupIndex.value = "";
+  groupId.value = "";
 };
 
 const openModal = async () => {
@@ -225,7 +225,7 @@ onIonViewWillEnter(async () => {
     if (acc) {
       name.value = acc.name;
       authSign.value = acc.auth_sign || "";
-      groupIndex.value = acc.groupIndex || "";
+      groupId.value = acc.groupId || "";
     }
   }
 });
@@ -253,17 +253,22 @@ const onEditAccount = async () => {
     alertOpen.value = true;
     return;
   }
-  const savedAcc = {
-    address: account.address,
+  
+  // 保留原始账户的所有字段，只更新需要修改的字段
+  const savedAcc: Account = {
+    ...account,  // 保留所有原始字段
     name: name.value,
-    pk: account.pk,
-    encPk: account.encPk,
     auth_sign: authSign.value,
-    groupIndex: groupIndex.value,
+    groupId: groupId.value,
   };
-  await deleteAccount(account.address, accounts);
-
-  await saveAccount(savedAcc);
+  
+  // 直接替换账户列表中的该账户，而不是删除再添加
+  const findIndex = accounts.findIndex((a) => a.address === paramAddress);
+  if (findIndex !== -1) {
+    accounts[findIndex] = savedAcc;
+  }
+  
+  await replaceAccounts([...accounts]);
   router.push("/tabs/accounts");
 };
 
@@ -341,7 +346,7 @@ const onAddAccount = async () => {
           pk: pk.value,
           encPk: await encrypt(pk.value, cryptoParams),
           auth_sign: authSign.value,
-          groupIndex: groupIndex.value,
+          groupId: groupId.value,
         });
       } else {
         if (accounts.find((account) => account.address === accountAddress)) {
@@ -356,7 +361,7 @@ const onAddAccount = async () => {
         pk: pk.value,
         encPk: await encrypt(pk.value, cryptoParams),
         auth_sign: authSign.value,
-        groupIndex: groupIndex.value,
+        groupId: groupId.value,
       });
       await Promise.all([p1, p2]);
     } else {
@@ -367,7 +372,7 @@ const onAddAccount = async () => {
           pk: pk.value,
           encPk: "",
           auth_sign: authSign.value,
-          groupIndex: groupIndex.value,
+          groupId: groupId.value,
         });
       } else {
         if (accounts.find((account) => account.address === accountAddress)) {
@@ -382,7 +387,7 @@ const onAddAccount = async () => {
         pk: pk.value,
         encPk: "",
         auth_sign: authSign.value,
-        groupIndex: groupIndex.value,
+        groupId: groupId.value,
       });
       await Promise.all([p1, p2]);
     }

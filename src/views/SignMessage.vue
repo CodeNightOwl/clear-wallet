@@ -144,7 +144,7 @@ onIonViewWillEnter(async () => {
       name: account?.name,
       address: account?.address,
       auth_sign: account?.auth_sign ? '✅ 已配置' : '❌ 未配置',
-      groupIndex: account?.groupIndex || '❌ 未配置',
+      groupId: account?.groupId || '❌ 未配置',
       pkLength: account?.pk?.length || 0
     });
   });
@@ -190,12 +190,18 @@ const onSign = async () => {
     name: selectedAccount?.name,
     address: selectedAccount?.address,
     auth_sign: selectedAccount?.auth_sign ? '✅ 已配置 (' + selectedAccount.auth_sign.substring(0, 20) + '...)' : '❌ 未配置',
-    groupIndex: selectedAccount?.groupIndex || '❌ 未配置',
+    groupId: selectedAccount?.groupId || '❌ 未配置',
     pkLength: selectedAccount?.pk?.length || 0
   });
 
-  if ((selectedAccount.pk ?? "").length !== 66) {
-    console.log('🔐 [SignMessage] 需要解锁钱包');
+  // 后端签名模式：检查是否有 auth_sign
+  if (selectedAccount.auth_sign && selectedAccount.auth_sign.length > 0) {
+    console.log('🔓 [SignMessage] 后端签名模式，无需解锁钱包');
+    unBlockLockout();
+    console.log('✅ [SignMessage] 用户批准签名，发送 approve 消息');
+    approve(rid);
+  } else if ((selectedAccount.pk ?? "").length !== 66) {
+    console.log('🔐 [SignMessage] 本地签名模式，需要解锁钱包');
     const modalResult = await openModal();
     if (modalResult) {
       unBlockLockout();
@@ -206,7 +212,7 @@ const onSign = async () => {
       onCancel();
     }
   } else {
-    console.log('🔓 [SignMessage] 钱包已解锁，直接发送 approve 消息');
+    console.log('🔓 [SignMessage] 本地签名模式，钱包已解锁，直接发送 approve 消息');
     unBlockLockout();
     console.log('✅ [SignMessage] 用户批准签名，发送 approve 消息');
     approve(rid);

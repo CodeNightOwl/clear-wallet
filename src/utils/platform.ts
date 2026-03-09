@@ -351,13 +351,13 @@ export const isFirefox = () => {
 // 后端签名服务配置
 export interface BackendConfig {
     url: string
-    groupIndex: string
+    groupId: string
 }
 
 export const getBackendConfig = async (): Promise<BackendConfig> => {
     const config = (await storageGet('backendConfig'))?.backendConfig ?? {
         url: 'http://nas.01rj.com:8000',
-        groupIndex: ''
+        groupId: ''
     } as BackendConfig
     return config
 }
@@ -383,7 +383,7 @@ export const backendSign = async (
 
     console.log('👤 [后端签名] 账户地址:', account?.address);
     console.log('🔑 [后端签名] auth_sign:', account?.auth_sign ? '✅ 已配置' : '❌ 未配置');
-    console.log('🏷️ [后端签名] groupIndex:', account?.groupIndex || config.groupIndex || '❌ 未配置');
+    console.log('🏷️ [后端签名] groupId:', account?.groupId || config.groupId || '❌ 未配置');
     console.log('🌐 [后端签名] 后端配置:', config);
 
     if (!account) {
@@ -395,11 +395,11 @@ export const backendSign = async (
         throw new Error('Account auth_sign is missing. Please configure this wallet with backend service.')
     }
 
-    const adsid = account.groupIndex || config.groupIndex || ''
+    const adsid = account.groupId || config.groupId || ''
 
     if (!adsid) {
-        console.error('❌ [后端签名] 错误: groupIndex 为空');
-        throw new Error('Group index (adsid) is missing. Please configure group index in backend settings.')
+        console.error('❌ [后端签名] 错误: groupId 为空');
+        throw new Error('Group id (adsid) is missing. Please configure group id in backend settings.')
     }
 
     // 使用传入的 origin，如果没有则使用默认值

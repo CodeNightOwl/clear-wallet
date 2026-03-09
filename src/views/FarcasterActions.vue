@@ -284,8 +284,7 @@ import {
   IonIcon,
   IonToast,
 } from "@ionic/vue";
-import { copyText } from "@/utils/platform";
-import router from "@/router";
+import { copyText, getAccounts, getSelectedAccount, unBlockLockout } from "@/utils/platform";
 import type { Account } from "@/extension/types";
 import UnlockModal from "@/views/UnlockModal.vue";
 import { copyOutline } from "ionicons/icons";
@@ -298,10 +297,12 @@ import {
 } from "@/utils/farcaster/farcaster";
 import { createJFS, validateCreateJFS } from "@/utils/farcaster/farcaster-JFS";
 
-import { getAccounts, getSelectedAccount, unBlockLockout } from "@/utils/platform";
+import { approve, walletPing } from "@/extension/userRequest";
 import { addWarpAuthToken, generateApiToken } from "@/utils/farcaster/farcaster-auth";
 import { setUnlockModalState } from "@/utils/unlockStore";
 import SelectedAccountModal from "@/views/modals/SelectAccountModal.vue";
+import { useRoute } from "vue-router";
+import router from "@/router";
 
 const alertOpen = ref(false);
 const alertMsg = ref("");
@@ -321,6 +322,10 @@ const accounts = ref([]) as Ref<Account[]>;
 const accountsModal = ref(false) as Ref<boolean>;
 const selectedAccount = (ref(null) as unknown) as Ref<Account>;
 const toastState = ref(false);
+
+// 从路由参数获取 rid（请求ID）
+const route = useRoute();
+const rid = (route?.params?.rid as string) ?? "";
 
 const getToastRef = () => toastState;
 
@@ -357,18 +362,27 @@ const farcasterSWIWAuthorize = async () => {
     return;
   }
 
-  if ((selectedAccount.value.pk ?? "").length !== 66) {
+  // 后端签名模式：检查是否有 auth_sign
+  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+    console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
+    unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
+  } else if ((selectedAccount.value.pk ?? "").length !== 66) {
+    console.log('🔐 [Farcaster] 本地签名模式，需要解锁钱包');
     const modalResult = await openModal();
     if (modalResult) {
       unBlockLockout();
+      console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+      approve(rid);
     } else {
       onCancel();
-      alertMsg.value = "Password not provided";
-      alertOpen.value = true;
-      return;
     }
   } else {
+    console.log('🔓 [Farcaster] 本地签名模式，钱包已解锁，直接发送 approve 消息');
     unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
   }
   loading.value = true;
   try {
@@ -410,18 +424,27 @@ const farcasterSWIWAuthorize = async () => {
 
 const farcasterSWIWQRAuthorize = async () => {
   exitWallet.value = false;
-  if ((selectedAccount.value.pk ?? "").length !== 66) {
+  // 后端签名模式：检查是否有 auth_sign
+  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+    console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
+    unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
+  } else if ((selectedAccount.value.pk ?? "").length !== 66) {
+    console.log('🔐 [Farcaster] 本地签名模式，需要解锁钱包');
     const modalResult = await openModal();
     if (modalResult) {
       unBlockLockout();
+      console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+      approve(rid);
     } else {
       onCancel();
-      alertMsg.value = "Password not provided";
-      alertOpen.value = true;
-      return;
     }
   } else {
+    console.log('🔓 [Farcaster] 本地签名模式，钱包已解锁，直接发送 approve 消息');
     unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
   }
   loading.value = true;
   try {
@@ -493,17 +516,28 @@ const promptForSignIn = async () => {
       return;
     }
 
-    if ((selectedAccount.value.pk ?? "").length !== 66) {
-      const modalResult = await openModal();
-      if (modalResult) {
-        unBlockLockout();
-        loading.value = true;
-      } else {
-        onCancel();
-      }
-    } else {
+    // 后端签名模式：检查是否有 auth_sign
+  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+    console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
+    unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
+  } else if ((selectedAccount.value.pk ?? "").length !== 66) {
+    console.log('🔐 [Farcaster] 本地签名模式，需要解锁钱包');
+    const modalResult = await openModal();
+    if (modalResult) {
       unBlockLockout();
+      console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+      approve(rid);
+    } else {
+      onCancel();
     }
+  } else {
+    console.log('🔓 [Farcaster] 本地签名模式，钱包已解锁，直接发送 approve 消息');
+    unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
+  }
 
     loading.value = true;
 
@@ -575,16 +609,27 @@ const doJFS = async () => {
     return;
   }
 
-  if ((selectedAccount.value.pk ?? "").length !== 66) {
+  // 后端签名模式：检查是否有 auth_sign
+  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+    console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
+    unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
+  } else if ((selectedAccount.value.pk ?? "").length !== 66) {
+    console.log('🔐 [Farcaster] 本地签名模式，需要解锁钱包');
     const modalResult = await openModal();
     if (modalResult) {
       unBlockLockout();
-      loading.value = true;
+      console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+      approve(rid);
     } else {
       onCancel();
     }
   } else {
+    console.log('🔓 [Farcaster] 本地签名模式，钱包已解锁，直接发送 approve 消息');
     unBlockLockout();
+    console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
+    approve(rid);
   }
   loading.value = true;
 

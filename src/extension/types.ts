@@ -17,7 +17,7 @@ export interface Account extends Contact {
     pk: string
     encPk: string
     auth_sign?: string
-    groupIndex?: string
+    groupId?: string
 }
 
 export interface Accounts {
