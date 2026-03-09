@@ -171,9 +171,11 @@ onIonViewWillEnter(async () => {
   pnetworks = getNetworks();
   selectedNetwork.value = await getSelectedNetwork();
   existingNetworks.value = await pnetworks;
-  if ((networkId.value ?? "0") in (existingNetworks?.value ?? {})) {
+  // 转换为数字进行比较，避免类型不匹配
+  const networkIdNum = Number(networkId.value);
+  if (networkIdNum in (existingNetworks?.value ?? {})) {
     networkCase.value = "exists";
-  } else if ((networkId.value ?? "0") in allTemplateNets) {
+  } else if (networkIdNum in allTemplateNets) {
     existingNetworks.value = allTemplateNets;
     networkCase.value = "inTemplates";
   } else {
