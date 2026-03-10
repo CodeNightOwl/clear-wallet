@@ -671,7 +671,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                             await chrome.windows.create({
                                 height: 450,
                                 width: 400,
-                                url: chrome.runtime.getURL(`index.html?route=wallet-error&param=${strToHex('No account is selected you need to have an account selected before trying to make a transaction')}&rid=${String(message?.resId ?? '')}`),
+                                url: chrome.runtime.getURL(`index.html#/wallet-error/${String(message?.resId ?? '')}/${strToHex('No account is selected you need to have an account selected before trying to make a transaction')}/${strToHex('')}`),
                                 type: 'popup'
                             })
                             return
@@ -680,7 +680,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                             await chrome.windows.create({
                                 height: 450,
                                 width: 400,
-                                url: chrome.runtime.getURL(`index.html?route=wallet-error&param=${strToHex('No network is selected you need to have a network selected before trying to make a transaction')}&rid=${String(message?.resId ?? '')}`),
+                                url: chrome.runtime.getURL(`index.html#/wallet-error/${String(message?.resId ?? '')}/${strToHex('No network is selected you need to have a network selected before trying to make a transaction')}/${strToHex('')}`),
                                 type: 'popup'
                             })
                             return
@@ -702,7 +702,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                             chrome.windows.create({
                                 height: 450,
                                 width: 400,
-                                url: chrome.runtime.getURL(`index.html?route=sign-tx&param=${serializeParams}&rid=${String(message?.resId ?? '')}&website=${strToHex(webDomain)}`),
+                                url: chrome.runtime.getURL(`index.html#/sign-tx/${String(message?.resId ?? '')}/${serializeParams}/${strToHex(webDomain)}`),
                                 type: 'popup'
                             }).then((win) => {
                                 gWin = win
@@ -756,7 +756,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                             chrome.windows.create({
                                 height: 450,
                                 width: 400,
-                                url: chrome.runtime.getURL(`index.html?route=wallet-error&param=${strToHex(String(err))}&rid=${String(message?.resId ?? '')}`),
+                                url: chrome.runtime.getURL(`index.html#/wallet-error/${String(message?.resId ?? '')}/${strToHex(String(err))}/${strToHex('')}`),
                                 type: 'popup'
                             })
                             chrome.notifications.create({
@@ -812,7 +812,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                             await chrome.windows.create({
                                 height: 470,
                                 width: 400,
-                                url: chrome.runtime.getURL(`index.html?route=wallet-error&param=${strToHex('No account is selected you need to have an account selected before trying sign a message')}&rid=${String(message?.resId ?? '')}`),
+                                url: chrome.runtime.getURL(`index.html#/wallet-error/${String(message?.resId ?? '')}/${strToHex('No account is selected you need to have an account selected before trying sign a message')}/${strToHex('')}`),
                                 type: 'popup'
                             })
                             return
@@ -845,7 +845,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                             chrome.windows.create({
                                 height: 510,
                                 width: 480,
-                                url: chrome.runtime.getURL(`index.html?route=sign-msg&param=${strToHex(signMsgData)}&rid=${String(message?.resId ?? '')}&website=${strToHex(webDomain)}`),
+                                url: chrome.runtime.getURL(`index.html#/sign-msg/${String(message?.resId ?? '')}/${strToHex(signMsgData)}/${strToHex(webDomain)}`),
                                 type: 'popup'
                             }).then((win) => {
                                 userReject[String(win?.id)] = reject
@@ -950,7 +950,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                                 chrome.windows.create({
                                     height: 450,
                                     width: 400,
-                                    url: chrome.runtime.getURL(`index.html?route=switch-network&param=${String(message?.params?.[0]?.chainId ?? '')}&rid=${String(message?.resId ?? '')}&website=${strToHex(webDomain)}`),
+                                    url: chrome.runtime.getURL(`index.html#/switch-network/${String(message?.resId ?? '')}/${String(message?.params?.[0]?.chainId ?? '')}/${strToHex(webDomain)}`),
                                     type: 'popup'
                                 }).then((win) => {
                                     userReject[String(win?.id)] = reject
@@ -1004,7 +1004,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                                     chrome.windows.create({
                                         height: 450,
                                         width: 400,
-                                        url: chrome.runtime.getURL(`index.html?route=request-network&param=${strToHex(JSON.stringify({ ...{ website: message?.website ?? '' }, ...(message?.params?.[0] ?? {}) }) ?? '')}&rid=${String(message?.resId ?? '')}`),
+                                        url: chrome.runtime.getURL(`index.html#/request-network/${String(message?.resId ?? '')}/${strToHex(JSON.stringify({ ...{ website: message?.website ?? '' }, ...(message?.params?.[0] ?? {}) }) ?? '')}/${strToHex('')}`),
                                         type: 'popup'
                                     }).then((win) => {
                                         userReject[String(win?.id)] = reject

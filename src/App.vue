@@ -14,7 +14,6 @@ import type { RequestArguments } from "@/extension/types";
 
 const route = useRoute();
 const router = useRouter();
-const { param, rid, website } = route.query;
 
 window.addEventListener("hide.bs.modal", (event) => {
   (event.target as any)!.inert = true;
@@ -78,50 +77,5 @@ onBeforeMount(() => {
       document.body.classList.add(settings.theme);
     }
   });
-});
-
-// onUnmounted(() => {
-//   if (chrome?.runtime?.onMessage) {
-//     chrome.runtime.onMessage.removeListener(pageListener);
-//     console.info("page listener removed");
-//   }
-// });
-
-onMounted(() => {
-  switch (route?.query?.route ?? "") {
-    case "sign-msg": {
-      router.push({
-        path: `/sign-msg/${rid}/${param}/${website}`,
-      });
-      break;
-    }
-    case "sign-tx": {
-      router.push({
-        path: `/sign-tx/${rid}/${param}/${website}`,
-      });
-      break;
-    }
-    case "switch-network": {
-      router.push({
-        path: `/switch-network/${rid}/${param}/${website}`,
-      });
-      break;
-    }
-    case "request-network": {
-      router.push({
-        path: `/request-network/${rid}/${param}/${website}`,
-      });
-      break;
-    }
-    case "wallet-error": {
-      router.push({
-        path: `/wallet-error/${rid}/${param}/${website}`,
-      });
-      break;
-    }
-    default: {
-      router.push({ path: "/" });
-    }
-  }
 });
 </script>
