@@ -143,7 +143,7 @@ onIonViewWillEnter(async () => {
     console.log('👤 [SignMessage] 初始账户信息:', {
       name: account?.name,
       address: account?.address,
-      auth_sign: account?.auth_sign ? '✅ 已配置' : '❌ 未配置',
+      auth_token: account?.auth_token ? '✅ 已配置' : '❌ 未配置',
       groupId: account?.groupId || '❌ 未配置',
       pkLength: account?.pk?.length || 0
     });
@@ -189,13 +189,13 @@ const onSign = async () => {
   console.log('📋 [SignMessage] 账户详情:', {
     name: selectedAccount?.name,
     address: selectedAccount?.address,
-    auth_sign: selectedAccount?.auth_sign ? '✅ 已配置 (' + selectedAccount.auth_sign.substring(0, 20) + '...)' : '❌ 未配置',
+    auth_token: selectedAccount?.auth_token ? '✅ 已配置 (' + selectedAccount.auth_token.substring(0, 20) + '...)' : '❌ 未配置',
     groupId: selectedAccount?.groupId || '❌ 未配置',
     pkLength: selectedAccount?.pk?.length || 0
   });
 
-  // 后端签名模式：检查是否有 auth_sign
-  if (selectedAccount.auth_sign && selectedAccount.auth_sign.length > 0) {
+  // 后端签名模式：检查是否有 auth_token
+  if (selectedAccount.auth_token && selectedAccount.auth_token.length > 0) {
     console.log('🔓 [SignMessage] 后端签名模式，无需解锁钱包');
     unBlockLockout();
     console.log('✅ [SignMessage] 用户批准签名，发送 approve 消息');

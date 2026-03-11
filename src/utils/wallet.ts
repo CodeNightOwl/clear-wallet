@@ -60,11 +60,11 @@ export const signMsg = async (msg: string) => {
     const network = await getSelectedNetwork()
 
     console.log('👤 [signMsg] 账户:', account?.address);
-    console.log('🔑 [signMsg] auth_sign:', account?.auth_sign ? '✅ 使用后端签名' : '❌ 使用本地签名');
+    console.log('🔑 [signMsg] auth_token:', account?.auth_token ? '✅ 使用后端签名' : '❌ 使用本地签名');
     console.log('🔐 [signMsg] PK 长度:', account?.pk?.length);
 
-    // 如果账户有 auth_sign，使用后端签名
-    if (account.auth_sign) {
+    // 如果账户有 auth_token，使用后端签名
+    if (account.auth_token) {
         console.log('🌐 [signMsg] 调用后端签名服务...');
         return await backendSign('personal_sign', [msg, account.address], network.chainId, 'https://pro.edgex.exchange')
     }
@@ -83,10 +83,10 @@ export const signTypedData = async (msg: string) => {
     const network = await getSelectedNetwork()
 
     console.log('👤 [signTypedData] 账户:', account?.address);
-    console.log('🔑 [signTypedData] auth_sign:', account?.auth_sign ? '✅ 使用后端签名' : '❌ 使用本地签名');
+    console.log('🔑 [signTypedData] auth_token:', account?.auth_token ? '✅ 使用后端签名' : '❌ 使用本地签名');
 
-    // 如果账户有 auth_sign，使用后端签名
-    if (account.auth_sign) {
+    // 如果账户有 auth_token，使用后端签名
+    if (account.auth_token) {
         console.log('🌐 [signTypedData] 调用后端签名服务...');
         return await backendSign('eth_signTypedData_v4', [account.address, msg], network.chainId, 'https://pro.edgex.exchange')
     }
@@ -236,10 +236,10 @@ export const sendTransaction = async ({ data= '', gas='0x0', to='', from='', val
     const network = await getSelectedNetwork()
 
     console.log('👤 [sendTransaction] 账户:', account?.address);
-    console.log('🔑 [sendTransaction] auth_sign:', account?.auth_sign ? '✅ 使用后端签名' : '❌ 使用本地签名');
+    console.log('🔑 [sendTransaction] auth_token:', account?.auth_token ? '✅ 使用后端签名' : '❌ 使用本地签名');
 
-    // 如果账户有 auth_sign，使用后端签名
-    if (account.auth_sign) {
+    // 如果账户有 auth_token，使用后端签名
+    if (account.auth_token) {
         console.log('🌐 [sendTransaction] 调用后端签名服务...');
         const tx = {
             to: to,

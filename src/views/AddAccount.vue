@@ -19,7 +19,7 @@
       <ion-item>
         <ion-button @click="getRandomName">Generate Random Name</ion-button>
       </ion-item>
-      <ion-item v-if="!authSign">
+      <ion-item v-if="!authToken">
         <ion-icon
           style="margin-right: 0.5rem; cursor: pointer"
           @click="paste('pastePk')"
@@ -47,11 +47,11 @@
       </ion-item>
       <ion-item>
         <ion-input
-          label="Auth Sign (后端签名)"
+          label="Auth Token (后端签名)"
           labelPlacement="stacked"
-          v-model="authSign"
+          v-model="authToken"
           fill="outline"
-          placeholder="从后端获取的鉴权签名"
+          placeholder="从后端获取的鉴权Token"
         ></ion-input>
       </ion-item>
       <ion-item>
@@ -63,7 +63,7 @@
           placeholder="指纹浏览器环境序号"
         ></ion-input>
       </ion-item>
-      <template v-if="!isEdit && !authSign">
+      <template v-if="!isEdit && !authToken">
         <ion-item>
           <ion-button @click="generateRandomPk">Generate Random Private Key</ion-button>
         </ion-item>
@@ -178,7 +178,7 @@ import { setUnlockModalState } from "@/utils/unlockStore";
 const name = ref("");
 const pk = ref("");
 const address = ref("");
-const authSign = ref("");
+const authToken = ref("");
 const groupId = ref("");
 const alertOpen = ref(false);
 const alertMsg = ref("");
@@ -196,7 +196,7 @@ const resetFields = () => {
   name.value = "";
   pk.value = "";
   address.value = "";
-  authSign.value = "";
+  authToken.value = "";
   groupId.value = "";
 };
 
@@ -238,7 +238,7 @@ onIonViewWillEnter(async () => {
 
       address.value = acc.address;
 
-      authSign.value = acc.auth_sign || "";
+      authToken.value = acc.auth_token || "";
 
       groupId.value = acc.groupId || "";
 
@@ -310,7 +310,7 @@ const onEditAccount = async () => {
 
     name: name.value,
 
-    auth_sign: authSign.value,
+    auth_token: authToken.value,
 
     groupId: groupId.value,
 
@@ -387,9 +387,9 @@ const onAddAccount = async () => {
     return;
   }
   
-  // 如果有 auth_sign，使用后端签名模式
-  if (authSign.value.length > 0) {
-    // 后端签名模式：只需要地址和 auth_sign
+  // 如果有 auth_token，使用后端签名模式
+  if (authToken.value.length > 0) {
+    // 后端签名模式：只需要地址和 auth_token
     let accountAddress = "";
     
     // 如果用户填写了地址，使用用户填写的地址
@@ -452,7 +452,7 @@ const onAddAccount = async () => {
           name: name.value,
           pk: pk.value,
           encPk: await encrypt(pk.value, cryptoParams),
-          auth_sign: authSign.value,
+          auth_token: authToken.value,
           groupId: groupId.value,
         });
       } else {
@@ -467,7 +467,7 @@ const onAddAccount = async () => {
         name: name.value,
         pk: pk.value,
         encPk: await encrypt(pk.value, cryptoParams),
-        auth_sign: authSign.value,
+        auth_token: authToken.value,
         groupId: groupId.value,
       });
       await Promise.all([p1, p2]);
@@ -478,7 +478,7 @@ const onAddAccount = async () => {
           name: name.value,
           pk: pk.value,
           encPk: "",
-          auth_sign: authSign.value,
+          auth_token: authToken.value,
           groupId: groupId.value,
         });
       } else {
@@ -493,7 +493,7 @@ const onAddAccount = async () => {
         name: name.value,
         pk: pk.value,
         encPk: "",
-        auth_sign: authSign.value,
+        auth_token: authToken.value,
         groupId: groupId.value,
       });
       await Promise.all([p1, p2]);
@@ -504,7 +504,7 @@ const onAddAccount = async () => {
       pk.value = `0x${pk.value.trim()}`;
     }
     if (pk.value.length !== 66) {
-      alertMsg.value = "Please provide a valid private key for local signing, or add auth_sign for backend signing.";
+      alertMsg.value = "Please provide a valid private key for local signing, or add auth_token for backend signing.";
       alertOpen.value = true;
       return;
     }

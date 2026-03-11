@@ -234,8 +234,8 @@ const getSignature = async () => {
     return;
   }
 
-  // 后端签名模式：检查是否有 auth_sign
-  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+  // 后端签名模式：检查是否有 auth_token
+  if (selectedAccount.value.auth_token && selectedAccount.value.auth_token.length > 0) {
     console.log('🔓 [PersonalSign] 后端签名模式，无需解锁钱包');
     unBlockLockout();
   } else if ((selectedAccount.value.pk ?? "").length !== 66) {

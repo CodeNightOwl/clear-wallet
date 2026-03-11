@@ -348,6 +348,22 @@ const openModal = async () => {
   return false;
 };
 
+const openAuthSignModal = async (accountAddress: string) => {
+  const modal = await modalController.create({
+    component: () => import('@/views/AuthSignInputModal.vue'),
+    animated: true,
+    focusTrap: false,
+    backdropDismiss: false,
+    componentProps: {
+      accountAddress
+    }
+  });
+  await modal.present();
+  const { role } = await modal.onWillDismiss();
+  if (role === "confirm") return true;
+  return false;
+};
+
 const onSign = async () => {
   console.log('🔍 [SignTx] 用户点击 Send 按钮');
   loading.value = true;
@@ -361,13 +377,37 @@ const onSign = async () => {
   console.log('📋 [SignTx] 账户详情:', {
     name: selectedAccount?.name,
     address: selectedAccount?.address,
-    auth_sign: selectedAccount?.auth_sign ? '✅ 已配置 (' + selectedAccount.auth_sign.substring(0, 20) + '...)' : '❌ 未配置',
+    auth_token: selectedAccount?.auth_token ? '✅ 已配置 (' + selectedAccount.auth_token.substring(0, 20) + '...)' : '❌ 未配置',
     groupId: selectedAccount?.groupId || '❌ 未配置',
     pkLength: selectedAccount?.pk?.length || 0
   });
 
-  // 后端签名模式：检查是否有 auth_sign
-  if (selectedAccount.auth_sign && selectedAccount.auth_sign.length > 0) {
+  // 检查 session 中是否有该账户的 auth_token
+  const sessionAuthTokens = await chrome.storage.session.get('authTokens');
+  const authTokensMap = sessionAuthTokens.authTokens ?? {};
+  const hasAuthTokenInSession = selectedAccount?.address ? !!authTokensMap[selectedAccount.address] : false;
+
+  // 后端签名模式：检查是否有 auth_token
+  if (selectedAccount?.groupId && !hasAuthTokenInSession) {
+    console.log('🔐 [SignTx] 后端签名模式，session 中没有该账户的 auth_token，需要输入');
+    const modalResult = await openAuthSignModal(selectedAccount.address);
+    if (modalResult) {
+      // 重新获取账户，auth_token 已合并
+      const updatedAccount = await getSelectedAccount();
+      if (updatedAccount?.auth_token) {
+        console.log('🔓 [SignTx] auth_token 已输入，无需解锁钱包');
+        unBlockLockout();
+        console.log('✅ [SignTx] 用户批准交易，发送 approve 消息');
+        approve(rid);
+      } else {
+        console.log('❌ [SignTx] auth_token 输入失败');
+        return;
+      }
+    } else {
+      onCancel();
+      return;
+    }
+  } else if (selectedAccount?.auth_token && selectedAccount.auth_token.length > 0) {
     console.log('🔓 [SignTx] 后端签名模式，无需解锁钱包');
     unBlockLockout();
     console.log('✅ [SignTx] 用户批准交易，发送 approve 消息');
@@ -473,7 +513,7 @@ onIonViewWillEnter(async () => {
   console.log('👤 [SignTx] 初始账户信息:', {
     name: intialSelectedAccount.value?.name,
     address: intialSelectedAccount.value?.address,
-    auth_sign: intialSelectedAccount.value?.auth_sign ? '✅ 已配置' : '❌ 未配置',
+    auth_token: intialSelectedAccount.value?.auth_token ? '✅ 已配置' : '❌ 未配置',
     groupId: intialSelectedAccount.value?.groupId || '❌ 未配置',
     pkLength: intialSelectedAccount.value?.pk?.length || 0
   });

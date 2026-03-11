@@ -362,8 +362,8 @@ const farcasterSWIWAuthorize = async () => {
     return;
   }
 
-  // 后端签名模式：检查是否有 auth_sign
-  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+  // 后端签名模式：检查是否有 auth_token
+  if (selectedAccount.value.auth_token && selectedAccount.value.auth_token.length > 0) {
     console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
     unBlockLockout();
     console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
@@ -424,8 +424,8 @@ const farcasterSWIWAuthorize = async () => {
 
 const farcasterSWIWQRAuthorize = async () => {
   exitWallet.value = false;
-  // 后端签名模式：检查是否有 auth_sign
-  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+  // 后端签名模式：检查是否有 auth_token
+  if (selectedAccount.value.auth_token && selectedAccount.value.auth_token.length > 0) {
     console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
     unBlockLockout();
     console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
@@ -516,8 +516,8 @@ const promptForSignIn = async () => {
       return;
     }
 
-    // 后端签名模式：检查是否有 auth_sign
-  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+    // 后端签名模式：检查是否有 auth_token
+  if (selectedAccount.value.auth_token && selectedAccount.value.auth_token.length > 0) {
     console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
     unBlockLockout();
     console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');
@@ -609,8 +609,8 @@ const doJFS = async () => {
     return;
   }
 
-  // 后端签名模式：检查是否有 auth_sign
-  if (selectedAccount.value.auth_sign && selectedAccount.value.auth_sign.length > 0) {
+  // 后端签名模式：检查是否有 auth_token
+  if (selectedAccount.value.auth_token && selectedAccount.value.auth_token.length > 0) {
     console.log('🔓 [Farcaster] 后端签名模式，无需解锁钱包');
     unBlockLockout();
     console.log('✅ [Farcaster] 用户批准操作，发送 approve 消息');

@@ -19,6 +19,43 @@ const defaultSettings = {
     lastExecutedMigration: '',
 }
 
+/**
+ * 迁移旧数据：将 local 中的 auth_token（或旧的 auth_sign）迁移到 session
+ * 只执行一次
+ */
+export const migrateAuthTokenToSession = async (): Promise<void> => {
+    const settings = await getSettings()
+    if (settings.lastExecutedMigration === 'auth_token_to_session') {
+        return // 已经迁移过
+    }
+
+    // 从 local 读取账户
+    const localAccounts = await storageGet('accounts')
+    const accounts = localAccounts.accounts ?? []
+
+    // 查找所有带有 auth_token 或 auth_sign（旧字段名）的账户
+    const authTokensMap: { [key: string]: string } = {}
+    let migratedCount = 0
+
+    accounts.forEach((acc: any) => {
+        const token = acc.auth_token || acc.auth_sign // 优先使用新字段名，兼容旧字段名
+        if (token && acc.address) {
+            authTokensMap[acc.address] = token
+            migratedCount++
+        }
+    })
+
+    if (migratedCount > 0) {
+        // 迁移到 session
+        await chrome.storage.session.set({ authTokens: authTokensMap })
+        console.log(`✅ [Migration] ${migratedCount} 个账户的 auth_token 已从 local 迁移到 session`)
+    }
+
+    // 更新迁移标记
+    settings.lastExecutedMigration = 'auth_token_to_session'
+    await setSettings(settings)
+}
+
 const defaultAbis = {} as {
     [key: string]: string
 }
@@ -76,21 +113,76 @@ export const replaceContacts = async (contacts: Contact[]): Promise<void> => {
 }
 
 export const getAccounts = async (): Promise<Account[]> => {
-    return (await storageGet('accounts')).accounts ?? [] as Account[]
+    const accounts = (await storageGet('accounts')).accounts ?? [] as Account[]
+    const sessionAuthTokens = await chrome.storage.session.get('authTokens')
+    const authTokensMap = sessionAuthTokens.authTokens ?? {}
+
+    // 如果 session 中有 auth_tokens，根据账户地址合并
+    if (Object.keys(authTokensMap).length > 0) {
+        return accounts.map(acc => ({
+            ...acc,
+            auth_token: authTokensMap[acc.address] ?? ''
+        }))
+    }
+
+    return accounts
 }
 
 export const saveAccount = async (account: Account): Promise<void> => {
     const savedAccounts = await getAccounts()
-    await storageSave('accounts', [account, ...savedAccounts])
+    const accountsToSave = [account, ...savedAccounts]
+
+    // 将 address -> auth_token 映射保存到 session
+    if (account.auth_token) {
+        const sessionAuthTokens = await chrome.storage.session.get('authTokens')
+        const authTokensMap = sessionAuthTokens.authTokens ?? {}
+        authTokensMap[account.address] = account.auth_token
+        await chrome.storage.session.set({ authTokens: authTokensMap })
+    }
+
+    // 保存账户（不包含 auth_token）
+    const accountsWithoutAuthToken = accountsToSave.map(acc => {
+        const { auth_token, ...rest } = acc
+        return rest as Account
+    })
+    await storageSave('accounts', accountsWithoutAuthToken)
 }
 
 export const replaceAccounts = async (accounts: Account[]): Promise<void> => {
-    await storageSave('accounts', accounts)
+    // 将所有账户的 address -> auth_token 映射保存到 session
+    const authTokensMap: { [key: string]: string } = {}
+    accounts.forEach(acc => {
+        if (acc.auth_token) {
+            authTokensMap[acc.address] = acc.auth_token
+        }
+    })
+    if (Object.keys(authTokensMap).length > 0) {
+        await chrome.storage.session.set({ authTokens: authTokensMap })
+    }
+
+    // 保存账户（不包含 auth_token）
+    const accountsWithoutAuthToken = accounts.map(acc => {
+        const { auth_token, ...rest } = acc
+        return rest as Account
+    })
+    await storageSave('accounts', accountsWithoutAuthToken)
 }
 
 
 export const getSelectedAccount = async (): Promise<Account> => {
-    return (await storageGet('selectedAccount'))?.selectedAccount ?? null as unknown as Account
+    const account = (await storageGet('selectedAccount'))?.selectedAccount ?? null as unknown as Account
+    const sessionAuthTokens = await chrome.storage.session.get('authTokens')
+    const authTokensMap = sessionAuthTokens.authTokens ?? {}
+
+    // 如果 session 中有该账户的 auth_token，合并到账户对象
+    if (account && account.address && authTokensMap[account.address]) {
+        return {
+            ...account,
+            auth_token: authTokensMap[account.address]
+        }
+    }
+
+    return account
 }
 
 
@@ -382,7 +474,7 @@ export const backendSign = async (
     const config = await getBackendConfig()
 
     console.log('👤 [后端签名] 账户地址:', account?.address);
-    console.log('🔑 [后端签名] auth_sign:', account?.auth_sign ? '✅ 已配置' : '❌ 未配置');
+    console.log('🔑 [后端签名] auth_token:', account?.auth_token ? '✅ 已配置' : '❌ 未配置');
     console.log('🏷️ [后端签名] groupId:', account?.groupId || config.groupId || '❌ 未配置');
     console.log('🌐 [后端签名] 后端配置:', config);
 
@@ -390,9 +482,9 @@ export const backendSign = async (
         throw new Error('No account selected')
     }
 
-    if (!account.auth_sign) {
-        console.error('❌ [后端签名] 错误: 账户 auth_sign 字段为空');
-        throw new Error('Account auth_sign is missing. Please configure this wallet with backend service.')
+    if (!account.auth_token) {
+        console.error('❌ [后端签名] 错误: 账户 auth_token 字段为空');
+        throw new Error('Account auth_token is missing. Please configure this wallet with backend service.')
     }
 
     const adsid = account.groupId || config.groupId || ''
@@ -408,7 +500,7 @@ export const backendSign = async (
     const request = {
         group_index: adsid,
         address: account.address,
-        sign: account.auth_sign,
+        token: account.auth_token,
         origin: requestOrigin,
         method: method,
         params: params,
@@ -418,7 +510,7 @@ export const backendSign = async (
     console.log('📤 [后端签名] 发送请求到:', `${config.url}/api/rpc/`);
     console.log('📦 [后端签名] 请求内容:', JSON.stringify({
         ...request,
-        sign: request.sign.substring(0, 20) + '...'
+        token: request.token.substring(0, 20) + '...'
     }));
 
     try {

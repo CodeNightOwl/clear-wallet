@@ -803,7 +803,7 @@ const mainListener = (message: RequestArguments, sender: any, sendResponse: (a: 
                         const account = await getSelectedAccount()
 
                         console.log('👤 [ServiceWorker] 当前账户:', account?.address);
-                        console.log('🔑 [ServiceWorker] auth_sign:', account?.auth_sign ? '✅ 已配置' : '❌ 未配置');
+                        console.log('🔑 [ServiceWorker] auth_token:', account?.auth_token ? '✅ 已配置' : '❌ 未配置');
                         console.log('🏷️ [ServiceWorker] groupId:', account?.groupId || '❌ 未配置');
                         console.log('🔐 [ServiceWorker] PK 长度:', account?.pk?.length);
 
